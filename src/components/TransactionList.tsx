@@ -5,14 +5,27 @@ import { Input } from "@/components/ui/input";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 
+// Define Transaction and MonthlyData types
+interface Transaction {
+  _id: string;
+  amount: number;
+  date: string;
+  description: string;
+}
+
+interface MonthlyData {
+  month: string;
+  total: number;
+}
+
 export default function TransactionList({ reload }: { reload: boolean }) {
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [edit, setEdit] = useState<any | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [edit, setEdit] = useState<Transaction | null>(null);
 
   useEffect(() => {
     fetch("/api/transactions")
       .then(res => res.json())
-      .then(setTransactions);
+      .then((data: Transaction[]) => setTransactions(data));
   }, [reload]);
 
   const handleDelete = async (id: string) => {
@@ -21,8 +34,9 @@ export default function TransactionList({ reload }: { reload: boolean }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
+
     if (res.ok) {
-      setTransactions(transactions.filter(t => t._id !== id));
+      setTransactions(prev => prev.filter(t => t._id !== id));
       toast.success("Transaction deleted");
     } else {
       toast.error("Failed to delete");
@@ -30,39 +44,47 @@ export default function TransactionList({ reload }: { reload: boolean }) {
   };
 
   const handleUpdate = async () => {
-    if (!edit.amount || !edit.date || !edit.description) {
+    if (!edit || !edit.amount || !edit.date || !edit.description.trim()) {
       toast.error("All fields are required");
       return;
     }
+
     const res = await fetch("/api/transactions", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(edit),
     });
+
     if (res.ok) {
-      toast.success("Transaction Updated");
+      toast.success("Transaction updated");
       setEdit(null);
-      const res = await fetch("/api/transactions");
-      setTransactions(await res.json());
+      const updated = await fetch("/api/transactions");
+      setTransactions(await updated.json());
     } else {
-      toast.error("Failed to update transaction");
+      toast.error("Failed to update");
     }
   };
 
-  const monthlyData = transactions.reduce((acc, t) => {
+  const monthlyData: MonthlyData[] = transactions.reduce((acc: MonthlyData[], t: Transaction) => {
     const month = new Date(t.date).toLocaleString("default", { month: "short" });
-    const entry = acc.find((a: any) => a.month === month);
-    if (entry) entry.total += t.amount;
-    else acc.push({ month, total: t.amount });
+    const existing = acc.find(item => item.month === month);
+    if (existing) {
+      existing.total += t.amount;
+    } else {
+      acc.push({ month, total: t.amount });
+    }
     return acc;
-  }, [] as any[]);
+  }, []);
 
   return (
     <div className="space-y-6 bg-white border rounded-md p-4">
       <h2 className="text-lg font-semibold">Transaction History</h2>
       <ul className="space-y-2">
         {transactions.map(t => (
-          <li key={t._id} className="flex justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm hover:bg-gray-100 transition">
+          <li
+            key={t._id}
+            className="flex justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm hover:bg-gray-100 transition"
+          >
             <span className="text-gray-800 text-sm">
               {t.date} — ₹{t.amount} — {t.description}
             </span>
@@ -74,7 +96,9 @@ export default function TransactionList({ reload }: { reload: boolean }) {
               >
                 Edit
               </Button>
-              <Button variant="destructive" onClick={() => handleDelete(t._id)}>Delete</Button>
+              <Button variant="destructive" onClick={() => handleDelete(t._id)}>
+                Delete
+              </Button>
             </div>
           </li>
         ))}
@@ -99,8 +123,15 @@ export default function TransactionList({ reload }: { reload: boolean }) {
               onChange={e => setEdit({ ...edit, description: e.target.value })}
             />
             <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setEdit(null)}>Cancel</Button>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={handleUpdate}>Save</Button>
+              <Button variant="secondary" onClick={() => setEdit(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={handleUpdate}
+              >
+                Save
+              </Button>
             </div>
           </div>
         </div>
