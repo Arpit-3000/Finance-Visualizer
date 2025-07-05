@@ -65,21 +65,31 @@ export default function TransactionList({ reload }: { reload: boolean }) {
       toast.error("Failed to update");
     }
   };
+interface MonthlyData {
+  month: string;
+  total: number;
+}
 
-  const monthlyData = transactions.reduce((acc: any[], t) => {
-    const month = new Date(t.date).toLocaleString("default", { month: "short" });
-    const existing = acc.find(m => m.month === month);
-    if (existing) existing.total += t.amount;
-    else acc.push({ month, total: t.amount });
-    return acc;
-  }, []);
+interface CategoryData {
+  name: string;
+  value: number;
+}
 
-  const categoryData = transactions.reduce((acc: any[], t) => {
-    const existing = acc.find(c => c.name === t.category);
-    if (existing) existing.value += t.amount;
-    else acc.push({ name: t.category, value: t.amount });
-    return acc;
-  }, []);
+const monthlyData = transactions.reduce<MonthlyData[]>((acc, t) => {
+  const month = new Date(t.date).toLocaleString("default", { month: "short" });
+  const existing = acc.find(m => m.month === month);
+  if (existing) existing.total += t.amount;
+  else acc.push({ month, total: t.amount });
+  return acc;
+}, []);
+
+const categoryData = transactions.reduce<CategoryData[]>((acc, t) => {
+  const existing = acc.find(c => c.name === t.category);
+  if (existing) existing.value += t.amount;
+  else acc.push({ name: t.category, value: t.amount });
+  return acc;
+}, []);
+
 
   const totalExpenses = transactions.reduce((sum, t) => sum + t.amount, 0);
   const recentTransactions = [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
