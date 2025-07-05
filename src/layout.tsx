@@ -12,8 +12,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
+        
+        <Toaster richColors position="bottom-center" />
         {children}
-        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

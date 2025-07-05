@@ -11,9 +11,19 @@ export async function GET() {
 export async function POST(request: Request) {
   await connectDB();
   const body = await request.json();
-  const transaction = await Transaction.create(body);
+  const { amount, date, description, category } = body;
+
+  if (!amount || !date || !description || !category?.trim()) {
+    return NextResponse.json(
+      { error: "All fields including category are required" },
+      { status: 400 }
+    );
+  }
+
+  const transaction = await Transaction.create({ amount, date, description, category });
   return NextResponse.json(transaction);
 }
+
 
 export async function DELETE(request: Request) {
   await connectDB();
@@ -24,11 +34,12 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   await connectDB();
-  const { _id, amount, date, description } = await request.json();
+  const { _id, amount, date, description, category } = await request.json(); 
   const updated = await Transaction.findByIdAndUpdate(
     _id,
-    { amount, date, description },
+    { amount, date, description, category }, 
     { new: true }
   );
   return NextResponse.json(updated);
 }
+
